@@ -1,0 +1,43 @@
+# Virtual Environment
+ai_shorts_env/
+venv/
+.venv/
+env/
+ENV/
+
+# Cache directories
+scraper_cache/
+scripts_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Generated files
+video_assets/
+narration.mp3
+downloaded_content.csv
+*.mp4
+*.mp3
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temp files
+*.tmp
+*.temp

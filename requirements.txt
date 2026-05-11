@@ -1,0 +1,7 @@
+langchain
+langchain-ollama
+apify-client
+python-dotenv
+edge-tts
+pexel-downloader
+moviepy
