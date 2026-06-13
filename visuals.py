@@ -35,27 +35,30 @@ def fetch_visuals(script_data: dict) -> None:
 
     for i, segment in enumerate(script_data['script']):
         query = segment['visual_instruction']
-        print(f"  > Downloading clip for Segment {i}: '{query}'")
+        print(f"  > Downloading clips for Segment {i}: '{query}'")
         
         try:
-            # Download the top portrait video for the segment
+            # Download a pool of portrait videos for the segment
             # Note: pexel-downloader saves with its own naming scheme
             downloader.download_videos(
                 query=query, 
-                num_videos=1, 
+                num_videos=5, 
                 save_directory=str(assets_dir), 
                 size="medium"
             )
             
-            # Logic to find the newly downloaded file and rename it
-            # This ensures Step 5 (MoviePy) can find them easily
+            # Logic to find the newly downloaded files and rename them
+            # This ensures Step 5 (MoviePy) can find the pool easily
             downloaded_files = list(assets_dir.glob("*.mp4"))
-            # Sort by creation time to find the latest
+            # Sort by creation time to find the latest batch
             downloaded_files.sort(key=os.path.getmtime, reverse=True)
-            
-            if downloaded_files:
-                new_path = assets_dir / f"segment_{i}.mp4"
-                os.rename(downloaded_files[0], new_path)
-                
+            pool = downloaded_files[:5]
+
+            if pool:
+                for j, f in enumerate(pool):
+                    os.rename(f, assets_dir / f"segment_{i}_{j}.mp4")
+            else:
+                print(f"  ! No files downloaded for segment {i}")
+
         except Exception as e:
             print(f"  ! Failed to get clip for '{query}': {e}")

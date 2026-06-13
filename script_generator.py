@@ -57,22 +57,22 @@ def generate_video_script(scraped_json: str, asin: str) -> dict:
                 {{
                     "segment": "Attention",
                     "vocal_text": "string",
-                    "visual_instruction": "string"
+                    "visual_instruction": "A unique, specific scene description. Avoid generic terms."
                 }},
                 {{
                     "segment": "Interest",
                     "vocal_text": "string",
-                    "visual_instruction": "string"
+                    "visual_instruction": "A unique, specific scene description. Avoid generic terms."
                 }},
                 {{
                     "segment": "Desire",
                     "vocal_text": "string",
-                    "visual_instruction": "string"
+                    "visual_instruction": "A unique, specific scene description. Avoid generic terms."
                 }},
                 {{
                     "segment": "Action",
                     "vocal_text": "string",
-                    "visual_instruction": "string"
+                    "visual_instruction": "A unique, specific scene description. Avoid generic terms."
                 }}
             ]
         }}

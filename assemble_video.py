@@ -1,4 +1,4 @@
-from moviepy import VideoFileClip, AudioFileClip, concatenate_videoclips, ImageClip
+from moviepy import VideoFileClip, AudioFileClip, concatenate_videoclips, ImageClip, vfx
 from pathlib import Path
 import os
 
@@ -19,62 +19,63 @@ def assemble_video(script_data, product_image_path=None):
     num_segments = len(script_data['script'])
     segment_duration = audio.duration / num_segments
 
-    for i,segment in enumerate(script_data['script']):
-        video_path = assets_dir / f"segment_{i}.mp4"
-        
-        # Check if this is the "Desire/Alternative" segme   nt where you want the image
-        # Logic: If 'alternative' or 'product' is in the vocal text, insert image
+    for i, segment in enumerate(script_data['script']):
+        pool_files = sorted(assets_dir.glob(f"segment_{i}_*.mp4"))
+
+        # Check if this is the "Desire/Alternative" segment where you want the image
         if "alternative" in segment['vocal_text'].lower() and product_image_path:
             print(f"  > Injecting product image into Segment {i}")
-            
+
             # Create a 2-second clip from the product image
             img_clip = (ImageClip(str(product_image_path))
                         .with_duration(2.0)
-                        .resized(width=1080)) # Ensure it fits vertical width
-            
-            # Get the remaining stock footage for this segment
+                        .resized(width=1080))
+
             stock_duration = segment_duration - 2.0
-            if video_path.exists() and stock_duration > 0:
-                stock_clip = VideoFileClip(str(video_path)).with_duration(stock_duration).resized(height=1920)
-                # Combine: Stock -> Product Image
+            if pool_files and stock_duration > 0:
+                stock_clip = VideoFileClip(str(pool_files[0])).resized(height=1920)
+                if stock_clip.w > 1080:
+                    stock_clip = stock_clip.cropped(x_center=stock_clip.w/2, width=1080)
+
+                if stock_clip.duration < stock_duration:
+                    stock_clip = stock_clip.with_effects([vfx.Loop(duration=stock_duration)])
+                else:
+                    stock_clip = stock_clip.with_duration(stock_duration)
+
                 clips.append(concatenate_videoclips([stock_clip, img_clip], method="chain"))
             else:
                 clips.append(img_clip.with_duration(segment_duration))
 
-        elif video_path.exists():
-            # Load clip
-            clip = VideoFileClip(str(video_path))
-            
-            # 1. Resize/Crop to Vertical (1080x1920)
-            # v2.0 uses .resized() and .cropped()
-            clip = clip.resized(height=1920)
-            if clip.w > 1080:
-                clip = clip.cropped(x_center=clip.w/2, width=1080)
-            
-            # 2. Adjust duration
-            # v2.0 uses .with_duration()
-            if clip.duration < segment_duration:
-                # Loop if too short
-                clip = clip.with_effects([lambda c: c.loop(duration=segment_duration)])
-            else:
-                clip = clip.with_duration(segment_duration)
-                
-            clip = VideoFileClip(str(video_path)).resized(height=1920)
-            if clip.w > 1080:
-                clip = clip.cropped(x_center=clip.w/2, width=1080)
-            clips.append(clip.with_duration(segment_duration))
+        elif pool_files:
+            # Cut this segment into ~4s sub-clips, cycling through the pool
+            sub_duration = 4.0
+            num_subclips = max(1, round(segment_duration / sub_duration))
+            actual_sub = segment_duration / num_subclips
+
+            segment_clips = []
+            for k in range(num_subclips):
+                src = pool_files[k % len(pool_files)]
+                sc = VideoFileClip(str(src)).resized(height=1920)
+                if sc.w > 1080:
+                    sc = sc.cropped(x_center=sc.w/2, width=1080)
+
+                if sc.duration < actual_sub:
+                    sc = sc.with_effects([vfx.Loop(duration=actual_sub)])
+                else:
+                    sc = sc.with_duration(actual_sub)
+
+                segment_clips.append(sc)
+
+            clips.append(concatenate_videoclips(segment_clips, method="chain"))
+
         else:
-            print(f"Warning: segment_{i}.mp4 missing. Skipping.")
+            print(f"Warning: no clips for segment {i}. Skipping.")
 
     if clips:
-        # 3. Concatenate and attach audio
-        # 'method="chain"' is the new default for simple sequences
         final_video = concatenate_videoclips(clips, method="chain")
         final_video = final_video.with_audio(audio)
-        
-        # 4. Write the file
+
         output_name = "final_amazon_short.mp4"
-        # MoviePy v2.0 handles codecs very cleanly on Windows
         final_video.write_videofile(
             output_name, 
             fps=24, 
